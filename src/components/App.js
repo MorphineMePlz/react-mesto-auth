@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useNavigate } from "react";
 import Header from "./Header";
 import Main from "./Main";
 import Footer from "./Footer";
@@ -10,6 +10,7 @@ import ImagePopup from "./ImagePopup";
 import { DEFAULT_CARD } from "../utils/constants";
 import { api } from "../utils/Api";
 import { CurrentUserContext } from "../contexts/CurrentUserContext";
+import { Routes, Route } from "react-router-dom";
 
 function App() {
   const [isEditAvatarPopupOpen, setEditAvatarPopupOpen] = useState(false);
@@ -20,6 +21,9 @@ function App() {
   const [selectedCard, setSelectedCard] = useState(DEFAULT_CARD);
   const [currentUser, setCurrentUser] = useState("Загрузка...");
   const [cards, setCards] = useState([]);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [register, setRegister] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     Promise.all([api.getUserInformation(), api.getInitialCards()])
@@ -141,7 +145,6 @@ function App() {
           card={selectedCard}
           isOpen={isImagePopupOpen}
         />
-
         <PopupConfirmation
           isOpen={isConfirmationPopupOpen}
           onClose={closeAllPopups}
@@ -161,6 +164,13 @@ function App() {
           onClose={closeAllPopups}
           onUpdateAvatar={handleUpdateAvatar}
         />
+
+        <Routes>
+          <Route exact path="/sign-in" element={<Login />} />
+        </Routes>
+        <Routes>
+          <Route exact path="/sign-up" element={<Register />} />
+        </Routes>
       </div>
     </CurrentUserContext.Provider>
   );
