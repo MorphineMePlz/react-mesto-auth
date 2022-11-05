@@ -64,3 +64,7 @@
 @import url(./blocks/popup/__confirmation-title/popup__confirmation-title.css);
 @import url(./blocks/popup/__submit-button/_loading/popup__submit-button_loading.css);
 @import url(./blocks/popup/__submit-button/_confirm/popup__submit-button_confirm.css);
+
+/* authorization */
+@import url(./blocks/authorization/authorization.css);
+@import url(./blocks/popup/__tooltip/tooltip.css);

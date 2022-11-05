@@ -1,4 +1,4 @@
-import { useState, useEffect, useNavigate } from "react";
+import { useState, useEffect } from "react";
 import Header from "./Header";
 import Main from "./Main";
 import Footer from "./Footer";
@@ -7,35 +7,73 @@ import ProfilePopup from "./ProfilePopup";
 import AddPlacePopup from "./AddPlacePopup";
 import PopupConfirmation from "./PopupConfirmation";
 import ImagePopup from "./ImagePopup";
+import Login from "./Login";
+import Register from "./Register";
+import InfoTooltip from "./InfoTooltip";
+import RequireAuth from "../hoc/RequireAuth";
 import { DEFAULT_CARD } from "../utils/constants";
 import { api } from "../utils/Api";
 import { CurrentUserContext } from "../contexts/CurrentUserContext";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
+import { authApi } from "../utils/AuthApi";
+import { useCallback } from "react";
+
+const NAVIGATION_DELAY = 2000;
 
 function App() {
+  // modals
+  const [isTooltipOpen, setTooltipOpen] = useState(false);
+  const [isImagePopupOpen, setImagePopupOpen] = useState(false);
+  const [isAddPlacePopupOpen, setAddPlacePopupOpen] = useState(false);
   const [isEditAvatarPopupOpen, setEditAvatarPopupOpen] = useState(false);
   const [isEditProfilePopupOpen, setEditProfilePopupOpen] = useState(false);
-  const [isAddPlacePopupOpen, setAddPlacePopupOpen] = useState(false);
   const [isConfirmationPopupOpen, setConfirmationPopupOpen] = useState(false);
-  const [isImagePopupOpen, setImagePopupOpen] = useState(false);
-  const [selectedCard, setSelectedCard] = useState(DEFAULT_CARD);
-  const [currentUser, setCurrentUser] = useState("Загрузка...");
+
   const [cards, setCards] = useState([]);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [register, setRegister] = useState(false);
+  const [isUserAuth, setUserAuth] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
+  const [isRequestFailed, setRequestFailed] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(DEFAULT_CARD);
+  const [currentUser, setCurrentUser] = useState(null);
+
   const navigate = useNavigate();
+
+  const checkToken = useCallback(() => {
+    const token = localStorage.getItem("jwt");
+
+    if (token) {
+      authApi
+        .checkTokenValidity(token)
+        .then((res) => {
+          setUserAuth(true);
+          setCurrentUserEmail(res.data.email);
+        })
+        .catch(() => {
+          setUserAuth(false);
+        });
+    }
+  }, []);
 
   useEffect(() => {
     Promise.all([api.getUserInformation(), api.getInitialCards()])
       .then(([userData, initialCards]) => {
+        localStorage.setItem("userId", userData._id);
         setCurrentUser(userData);
         setCards(initialCards);
-        localStorage.setItem("userId", userData._id);
+        checkToken();
       })
-      .catch((error) => {
-        console.log(error);
+      .catch(() => {
+        setCurrentUser(null);
+        setUserAuth(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (isUserAuth) {
+      checkToken();
+      navigate("/");
+    }
+  }, [checkToken, isUserAuth, navigate]);
 
   function handleCardLike(card) {
     const isLiked = card.likes.some((i) => i._id === currentUser._id);
@@ -115,6 +153,7 @@ function App() {
     setAddPlacePopupOpen(false);
     setConfirmationPopupOpen(false);
     setImagePopupOpen(false);
+    setTooltipOpen(false);
     setSelectedCard(DEFAULT_CARD);
   }
 
@@ -126,19 +165,84 @@ function App() {
     setAddPlacePopupOpen(true);
   }
 
+  const handleRegestration = (evt, { email, password }) => {
+    evt.preventDefault();
+    authApi
+      .signUp({ email, password })
+      .then(() => {
+        setRequestFailed(false);
+        setTooltipOpen(true);
+        setTimeout(() => {
+          navigate("/login");
+          setTooltipOpen(false);
+        }, NAVIGATION_DELAY);
+      })
+      .catch(() => {
+        setRequestFailed(true);
+        setTooltipOpen(true);
+      });
+  };
+
+  const handleLogin = (evt, { email, password }) => {
+    evt.preventDefault();
+    authApi
+      .signIn({ email, password })
+      .then((res) => {
+        localStorage.setItem("jwt", res.token);
+        setUserAuth(true);
+      })
+      .catch(() => {
+        setRequestFailed(true);
+        setTooltipOpen(true);
+      });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("userId");
+    localStorage.removeItem("jwt");
+    setCurrentUserEmail(null);
+    setUserAuth(false);
+    navigate("/login");
+  };
+
   return (
     <CurrentUserContext.Provider value={currentUser}>
       <div className="page">
-        <Header />
-        <Main
-          onEditAvatar={handleEditAvatarClick}
-          onEditProfile={handleEditProfileClick}
-          onAddPlace={handleAddPlaceClick}
-          onHandleCardClick={handleCardClick}
-          cards={cards}
-          onCardLike={handleCardLike}
-          onCardDelete={handleCardDelete}
+        <Header
+          handleLogout={handleLogout}
+          currentUserEmail={currentUserEmail}
+          isUserAuth={isUserAuth}
         />
+        <Routes>
+          <Route
+            path="/"
+            exact
+            element={
+              <RequireAuth isUserAuth={isUserAuth}>
+                <Main
+                  onEditAvatar={handleEditAvatarClick}
+                  onEditProfile={handleEditProfileClick}
+                  onAddPlace={handleAddPlaceClick}
+                  onHandleCardClick={handleCardClick}
+                  cards={cards}
+                  onCardLike={handleCardLike}
+                  onCardDelete={handleCardDelete}
+                />
+              </RequireAuth>
+            }
+          />
+          <Route
+            exact
+            path="/sign-up"
+            element={<Register onSubmit={handleRegestration} />}
+          />
+          <Route
+            exact
+            path="/login"
+            element={<Login onSubmit={handleLogin} />}
+          />
+        </Routes>
+
         <Footer />
         <ImagePopup
           onClose={closeAllPopups}
@@ -165,12 +269,11 @@ function App() {
           onUpdateAvatar={handleUpdateAvatar}
         />
 
-        <Routes>
-          <Route exact path="/sign-in" element={<Login />} />
-        </Routes>
-        <Routes>
-          <Route exact path="/sign-up" element={<Register />} />
-        </Routes>
+        <InfoTooltip
+          isOpen={isTooltipOpen}
+          onClose={closeAllPopups}
+          isRequestFailed={isRequestFailed}
+        />
       </div>
     </CurrentUserContext.Provider>
   );
