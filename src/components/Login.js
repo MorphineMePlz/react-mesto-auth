@@ -30,8 +30,7 @@ function Login({ onSubmit }) {
         />
         <button
           type="submit"
-          className="authorization__submit"
-          style={{ marginBottom: "34px" }}
+          className="authorization__submit authorization__submit-button"
         >
           Войти
         </button>

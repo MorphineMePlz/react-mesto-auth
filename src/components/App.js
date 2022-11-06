@@ -10,11 +10,11 @@ import ImagePopup from "./ImagePopup";
 import Login from "./Login";
 import Register from "./Register";
 import InfoTooltip from "./InfoTooltip";
-import RequireAuth from "../hoc/RequireAuth";
+import ProtectedRoute from "../hoc/ProtectedRoute";
 import { DEFAULT_CARD } from "../utils/constants";
 import { api } from "../utils/Api";
 import { CurrentUserContext } from "../contexts/CurrentUserContext";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import { authApi } from "../utils/AuthApi";
 import { useCallback } from "react";
 
@@ -66,6 +66,7 @@ function App() {
         setCurrentUser(null);
         setUserAuth(false);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -218,7 +219,7 @@ function App() {
             path="/"
             exact
             element={
-              <RequireAuth isUserAuth={isUserAuth}>
+              <ProtectedRoute isUserAuth={isUserAuth}>
                 <Main
                   onEditAvatar={handleEditAvatarClick}
                   onEditProfile={handleEditProfileClick}
@@ -228,13 +229,19 @@ function App() {
                   onCardLike={handleCardLike}
                   onCardDelete={handleCardDelete}
                 />
-              </RequireAuth>
+              </ProtectedRoute>
             }
           />
           <Route
             exact
             path="/sign-up"
             element={<Register onSubmit={handleRegestration} />}
+          />
+          <Route
+            path="*"
+            element={
+              isUserAuth ? <Navigate to="/" /> : <Navigate to="/login" />
+            }
           />
           <Route
             exact

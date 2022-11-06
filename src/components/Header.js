@@ -44,11 +44,15 @@ function Header({ handleLogout, currentUserEmail, isUserAuth }) {
           <span className="header__email-container">{currentUserEmail}</span>
         )}
         {currentUserEmail ? (
-          <button className="header__link-item" onClick={handleLogout}>
+          <button className="header__button" onClick={handleLogout}>
             Выйти
           </button>
         ) : (
-          <Link to={isLink} className="header__link-item">
+          <Link
+            to={isLink}
+            onClick={handleLogout}
+            className="header__link-item"
+          >
             {isLinkText}
           </Link>
         )}

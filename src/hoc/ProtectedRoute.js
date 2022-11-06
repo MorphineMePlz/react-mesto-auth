@@ -1,6 +1,6 @@
 import { useLocation, Navigate } from "react-router-dom";
 
-function RequireAuth({ children, isUserAuth }) {
+function ProtectedRoute({ children, isUserAuth }) {
   const location = useLocation();
 
   if (!isUserAuth) {
@@ -10,4 +10,4 @@ function RequireAuth({ children, isUserAuth }) {
   return children;
 }
 
-export default RequireAuth;
+export default ProtectedRoute;
